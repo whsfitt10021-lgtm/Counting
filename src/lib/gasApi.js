@@ -125,6 +125,38 @@ const mock = {
 const isRealGas = () =>
   typeof window !== 'undefined' && window.google && window.google.script && window.google.script.run;
 
+const isAppsScriptHost = () => {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  return hostname === 'script.google.com' || hostname.endsWith('.googleusercontent.com');
+};
+
+function waitForRealGas(timeoutMs = 5000) {
+  if (isRealGas()) return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    const startedAt = Date.now();
+    const intervalId = window.setInterval(() => {
+      if (isRealGas()) {
+        window.clearInterval(intervalId);
+        resolve();
+        return;
+      }
+
+      if (Date.now() - startedAt >= timeoutMs) {
+        window.clearInterval(intervalId);
+        reject(new Error('Backend Apps Script belum siap. Muat ulang halaman lalu coba lagi.'));
+      }
+    }, 50);
+  });
+}
+
+export function getBackendMode() {
+  if (isRealGas()) return 'apps-script';
+  if (isAppsScriptHost()) return 'connecting';
+  return 'mock';
+}
+
 /**
  * gasApi.<fn>(...args) -> Promise
  * Routes to real google.script.run when running inside Apps Script,
@@ -136,6 +168,9 @@ export const gasApi = new Proxy(
     get(_target, fnName) {
       return (...args) => {
         if (isRealGas()) return callReal(fnName, ...args);
+        if (isAppsScriptHost()) {
+          return waitForRealGas().then(() => callReal(fnName, ...args));
+        }
         if (typeof mock[fnName] !== 'function') {
           return Promise.reject(new Error(`Mock gasApi: "${String(fnName)}" not implemented`));
         }
@@ -144,5 +179,3 @@ export const gasApi = new Proxy(
     },
   }
 );
-
-export const isDevMode = !isRealGas();
