@@ -1,6 +1,6 @@
 import { useReducer, useRef, useState, useCallback, useEffect } from 'react';
 import { appReducer, initialState, getActiveLayer } from './state/appReducer';
-import { gasApi, isDevMode } from './lib/gasApi';
+import { gasApi, getBackendMode } from './lib/gasApi';
 import { useImageStore } from './hooks/useImageStore';
 
 import NavSidebar from './components/NavSidebar';
@@ -21,11 +21,26 @@ export default function App() {
   const [noMobil, setNoMobil] = useState('');
   const [kategori, setKategori] = useState('');
   const [modalProjects, setModalProjects] = useState(null); // null = closed
+  const [backendMode, setBackendMode] = useState(getBackendMode);
 
   const fileInputImagesRef = useRef(null);
   const fileInputSpmRef = useRef(null);
 
   const activeLayer = getActiveLayer(state);
+
+  useEffect(() => {
+    if (backendMode !== 'connecting') return undefined;
+
+    const intervalId = window.setInterval(() => {
+      const nextMode = getBackendMode();
+      if (nextMode !== 'connecting') {
+        setBackendMode(nextMode);
+        window.clearInterval(intervalId);
+      }
+    }, 100);
+
+    return () => window.clearInterval(intervalId);
+  }, [backendMode]);
 
   const toast = useCallback((msg, type) => dispatch({ type: 'TOAST', msg, toastType: type }), []);
   const log = useCallback((msg, isError) => dispatch({ type: 'LOG', msg, isError }), []);
@@ -363,7 +378,9 @@ export default function App() {
         />
       )}
 
-      {isDevMode && <div className="dev-badge">DEV MODE (mock backend, not connected to Apps Script)</div>}
+      {backendMode === 'mock' && (
+        <div className="dev-badge">DEV MODE (mock backend, not connected to Apps Script)</div>
+      )}
     </div>
   );
 }
