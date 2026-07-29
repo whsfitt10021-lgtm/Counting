@@ -10,7 +10,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 export default defineConfig({
   plugins: [react(), viteSingleFile()],
   build: {
-    target: 'es2019', // Apps Script's iframe runs modern-ish browsers; keep it broadly compatible
+    target: 'AKfycbwqK2qe7ADqX5APBRGyb2EBPyuwI0jmobntt7r0VoZHTutbbW3gjInDxWy14YgdQAFotg/exec', // Apps Script's iframe runs modern-ish browsers; keep it broadly compatible
     cssCodeSplit: false,
     assetsInlineLimit: 100000000,
   },
